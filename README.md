@@ -51,9 +51,7 @@ Endpoints:
 * `/everything` - Authorized users with super user capabilities can access this route  
   
 #### Tests  
-* How do you run tests?
-* What assertions were made?
-* What assertions need to be / should be made?
+* How do you run tests? `npm test`  
   
 #### UML  
 ![uml](https://github.com/401-advanced-javascript-mspake/lab-14/tree/role-based-authentication/assets/uml.jpg)
