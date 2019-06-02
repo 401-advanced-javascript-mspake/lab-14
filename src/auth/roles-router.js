@@ -27,6 +27,12 @@ rolesRouter.get('/create-roles', (request, response, next) => {
     .catch(next);
 });
 
+rolesRouter.get('/delete-roles', (request, response, next) => {
+  Role.deleteMany({capabilities: 'read'}, function (err) {}).then( result => {
+    response.send(result);
+  });
+});
+
 rolesRouter.get('/public-stuff', (request, response, next) => {
   response.status(200).send('Thank you for visiting our server');
 });

@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-require('./roles-model.js');
+const Role = require('./roles-model.js');
 
 const SINGLE_USE_TOKENS = !!process.env.SINGLE_USE_TOKENS;
 const TOKEN_EXPIRE = process.env.TOKEN_LIFETIME || '5m';
@@ -15,15 +15,21 @@ const users = new mongoose.Schema({
   username: {type:String, required:true, unique:true},
   password: {type:String, required:true},
   email: {type: String},
-  role: {type: String, default:'user', enum: ['admin','editor','user', 'superuser']},
+  role: {type: String, default:'user', enum: ['admin','editor','user','superuser']},
 });
 
-const capabilities = {
-  superuser: ['create','read','update','delete', 'superuser'],
-  admin: ['create','read','update','delete'],
-  editor: ['create', 'read', 'update'],
-  user: ['read'],
-};
+users.virtual('capabilities', {
+  ref: 'roles',
+  localField: 'role',
+  foreignField: 'role',
+  justOne: true,
+});
+
+users.pre('findOne', function(next) {
+  this.populate('capabilities');
+  next();
+});
+
 
 users.pre('save', function(next) {
   bcrypt.hash(this.password, 10)
@@ -61,6 +67,7 @@ users.statics.authenticateToken = function(token) {
     let parsedToken = jwt.verify(token, SECRET);
     (SINGLE_USE_TOKENS) && parsedToken.type !== 'key' && usedTokens.add(token);
     let query = {_id: parsedToken.id};
+
     return this.findOne(query);
   } catch(e) { throw new Error('Invalid Token'); }
   
@@ -79,10 +86,9 @@ users.methods.comparePassword = function(password) {
 };
 
 users.methods.generateToken = function(type) {
-  
   let token = {
     id: this._id,
-    capabilities: capabilities[this.role],
+    capabilities: this.capabilities,
     type: type || 'user',
   };
   
@@ -95,7 +101,7 @@ users.methods.generateToken = function(type) {
 };
 
 users.methods.can = function(capability) {
-  return capabilities[this.role].includes(capability);
+  return this.capabilities.capabilities.includes(capability);
 };
 
 users.methods.generateKey = function() {
